@@ -147,7 +147,24 @@ bin/kafka-topics.sh --bootstrap-server localhost:9092 \
 docker exec --workdir //opt/kafka -it kafka \
 bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 \
 --command-property group.protocol=consumer \
---topic mytopic --group grupa-a 
+--topic mytopic --group grupa-a  
+```
+
+```sh
+# Kreiranje producera:
+docker exec --workdir //opt/kafka -it kafka sh \
+bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic mytopic
+```
+
+```sh
+# Citanje s particije
+docker exec --workdir //opt/kafka -it kafka sh \
+  bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 \
+  --topic mytopic \
+  --partition 0 \
+  --from-beginning
+  #--osffset 5
 ```
 
 ```bash
@@ -375,9 +392,50 @@ bin/kafka-console-producer.sh --topic ride-topic \
 # d-2:{ "rideId": "r-1", "driverId": "d-2", "lat": 45.8105, "lon": 44.97027 }
 ```
 
-## Kafka Connect API
+#### Branching
 
-Kreiranje novog Docker image-a koji sadrži biblioteku koja fali za konektor:
+```sh
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic transactions-input
+
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic transactions-approved
+
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic transactions-rejected
+
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic transactions-pending
+
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic transactions-unknown
+
+# { "transactionId": "tx-1001", "accountId": "acc-55", "amount": 250.75, "status": "PENDING" }
+# { "transactionId": "tx-1002", "accountId": "acc-55", "amount": 20.75, "status": "REJECTED" }
+
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-console-producer.sh --topic transactions-input \
+--bootstrap-server localhost:9092 \
+--reader-property "parse.key=true" \
+--reader-property "key.separator=:"
+```
+
+## Kafka Connect API
 
 Kopirati config datoteke lokalno:
 

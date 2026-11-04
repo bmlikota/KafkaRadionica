@@ -8,6 +8,16 @@ Polaznici na svojim računalima trebaju imati instalirane sljedeće alate:
 
 - **Java 21 ili novija verzija**
 - **Docker**
+  - Neki su morali napraviti sljedeće kako bi Docker proradio:
+    - **Link:** [WSL 3.0.4](https://github.com/microsoft/WSL/releases/tag/3.0.4)
+    - **App:** `Microsoft.WSL_3.0.4.0_x64_ARM64.msixbundle`
+    - **PowerShell naredba** (potrebna su administratorska prava):
+
+      ```powershell
+      Add-AppxPackage "C:\Users\i814605\Downloads\Microsoft.WSL_3.0.4.0_x64_ARM64.msixbundle"
+      ```
+
+    - Nakon toga samo restartati Docker ako je potrebno.
 - **Visual Studio Code (VS Code)** s instaliranim sljedećim ekstenzijama:
   - [Spring Boot Extension Pack](https://marketplace.visualstudio.com/items?itemName=vmware.vscode-boot-dev-pack)
   - [Markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint)
