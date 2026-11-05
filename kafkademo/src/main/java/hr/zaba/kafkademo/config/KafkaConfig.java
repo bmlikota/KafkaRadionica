@@ -17,10 +17,15 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
-import hr.zaba.kafkademo.dto.Order;
+import org.springframework.util.backoff.FixedBackOff;
 
+import hr.zaba.kafkademo.dto.Order;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Configuration
 public class KafkaConfig {
 
@@ -29,7 +34,7 @@ public class KafkaConfig {
 
     // String producer
     @Bean
-    public ProducerFactory<String, String> stringProducerFactory() {
+    public ProducerFactory<String, String> stringStringProducerFactory() {
         Map<String, Object> config = new HashMap<>();
 
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapAddress);
@@ -40,13 +45,13 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, String> kafkaTemplate() {
-        return new KafkaTemplate<>(stringProducerFactory());
+    public KafkaTemplate<String, String> stringStringKafkaTemplate() {
+        return new KafkaTemplate<>(stringStringProducerFactory());
     }
 
     // Order producer
     @Bean
-    public ProducerFactory<Long, Order> orderProducerFactory() {
+    public ProducerFactory<Long, Order> longJsonProducerFactory() {
         Map<String, Object> config = new HashMap<>();
 
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, this.bootstrapAddress);
@@ -57,11 +62,39 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaTemplate<Long, Order> ordersKafkaTemplate() {
-        return new KafkaTemplate<>(orderProducerFactory());
+    public KafkaTemplate<Long, Order> longJsonKafkaTemplate() {
+        return new KafkaTemplate<>(longJsonProducerFactory());
     }
 
     // Order consumer
+    //@Bean // ako ovo otkomentiramo, onda ce to biti handler za sve KafkaListenere 
+    public DefaultErrorHandler ordersErrorHandler() {
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+            (record, exception) -> {
+                // Logika u slucaju greske
+                log.error(
+                    "Failed to process Kafka message. Topic: {}, Key: {}, Error: {}",
+                    record.topic(),
+                    record.key(),
+                    exception.getMessage(),
+                    exception
+                );
+
+                // Mozemo spremiti neuspjeli event u bazu,You can save the failed message to a database,
+                // poslati alert i/ili poslati na drugi topic
+            },
+            new FixedBackOff(1000L, 2L) // pokusaj 2 puta svako 1 sec, onda izvrsi gornju logiku ako ne uspije
+        );
+
+        // U slucaju ove greske nemoj pokusati ponovo
+        errorHandler.addNotRetryableExceptions(
+            IllegalArgumentException.class
+        );
+
+        return errorHandler;
+    }
+
     @Bean
     public ConsumerFactory<Long, Order> orderConsumerFactory() {
         Map<String, Object> config = new HashMap<>();
@@ -81,6 +114,7 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<Long, Order> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(orderConsumerFactory());
+        factory.setCommonErrorHandler(ordersErrorHandler());
         return factory;
     }
 }

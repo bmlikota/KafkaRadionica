@@ -8,6 +8,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.Branched;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.JoinWindows;
@@ -30,6 +31,7 @@ import hr.zaba.kafkademo.dto.DriverLocation;
 import hr.zaba.kafkademo.dto.Order;
 import hr.zaba.kafkademo.dto.RideMatch;
 import hr.zaba.kafkademo.dto.RideRequest;
+import hr.zaba.kafkademo.dto.Transaction;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
 
@@ -51,9 +53,9 @@ public class KafkaStreamsConfig {
         return Serdes.serdeFrom(new JacksonJsonSerializer<>(), new JacksonJsonDeserializer<>(Order.class));
     }
 
-    /*private Serde<Transaction> transactionSerde() {
+    private Serde<Transaction> transactionSerde() {
         return Serdes.serdeFrom(new JacksonJsonSerializer<>(), new JacksonJsonDeserializer<>(Transaction.class));
-    }*/
+    }
 
     private Serde<DriverLocation> driverSerde() {
         return Serdes.serdeFrom(new JacksonJsonSerializer<>(), new JacksonJsonDeserializer<>(DriverLocation.class));
@@ -76,7 +78,7 @@ public class KafkaStreamsConfig {
     }
 
     @Bean
-    @ConditionalOnExpression("true")
+    @ConditionalOnExpression("false")
     public KStream<String, String> kStream(StreamsBuilder kStreamBuilder) {
         KStream<String, String> stream = kStreamBuilder.stream("my-input-streams-topic");
         KTable<String, Long> wordsCount = stream
@@ -84,7 +86,7 @@ public class KafkaStreamsConfig {
                 .mapValues((ValueMapper<String, String>) String::toLowerCase)
                 .peek((key, value) -> log.debug("ZABA After mapValues: " + value))
                 .flatMapValues(value -> Arrays.asList(value.split("\\W+")))
-                .peek((key, value) -> log.debug("ZABA After flatMapValues: key: " + key + ", value" + value))
+                .peek((key, value) -> log.debug("ZABA After flatMapValues: key: " + key + ", value " + value))
                 .groupBy((key, value) -> value)
                 .count();
 
@@ -127,7 +129,7 @@ public class KafkaStreamsConfig {
     }
 
     @Bean
-    @ConditionalOnExpression("false")
+    @ConditionalOnExpression("true")
     public KStream<String, Order> joinStream(StreamsBuilder kStreamBuilder) {
 
         KStream<String, Order> leftStream = kStreamBuilder
@@ -181,9 +183,9 @@ public class KafkaStreamsConfig {
             .filter((key, match) -> {
 
                 double latDiff =
-                    match.getRide().getLat() - match.getDrive().getLat();
+                    match.getRide().getLat() - match.getDriver().getLat();
                 double lonDiff =
-                    match.getRide().getLon() - match.getDrive().getLon();
+                    match.getRide().getLon() - match.getDriver().getLon();
                 double distance =
                     Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
 
@@ -199,6 +201,50 @@ public class KafkaStreamsConfig {
             );
 
         return matches;
+    }
+
+
+    @Bean
+    @ConditionalOnExpression("false")
+    public KStream<String, Transaction> transactionsStream(
+            StreamsBuilder kStreamBuilder) {
+
+        KStream<String, Transaction> transactionsStream =
+            kStreamBuilder.stream(
+                "transactions-input",
+                Consumed.with(Serdes.String(), transactionSerde())
+            );
+
+        transactionsStream
+            .peek((key, value) ->
+                log.info("Received transaction: {}", value)
+            )
+            .split()
+            .branch(
+                (key, value) -> "APPROVED".equalsIgnoreCase(value.getStatus()),
+                Branched.withConsumer(ks ->
+                    ks.to("transactions-approved")
+                )
+            )
+            .branch(
+                (key, value) -> "REJECTED".equalsIgnoreCase(value.getStatus()),
+                Branched.withConsumer(ks ->
+                    ks.to("transactions-rejected")
+                )
+            )
+            .branch(
+                (key, value) -> "PENDING".equalsIgnoreCase(value.getStatus()),
+                Branched.withConsumer(ks ->
+                    ks.to("transactions-pending")
+                )
+            )
+            .defaultBranch(
+                Branched.withConsumer(ks ->
+                    ks.to("transactions-unknown")
+                )
+            );
+
+        return transactionsStream;
     }
 
 }

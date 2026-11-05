@@ -41,9 +41,11 @@ public class KafkaConsumerConfig {
     public void listenWithHeaders(
             @Payload String message,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) int offset) throws Exception {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
        log.debug("Received Message: " + message
                 + "\n from partition: " + partition + ", group: foo, offset: " + offset);
+
+        //throw new RuntimeException("My exception");
     }
 
     @KafkaListener(
@@ -51,7 +53,7 @@ public class KafkaConsumerConfig {
     )
     public void listenToPartition(
         @Payload String message,
-        @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+        @Header(KafkaHeaders.RECEIVED_PARTITION) long partition,
         @Header(KafkaHeaders.OFFSET) int offset) {
             log.debug("Received Message: " + message + "\n from partition: " + partition + ", offset: " + offset);
     }
@@ -64,6 +66,7 @@ public class KafkaConsumerConfig {
     )
     public void listenOrders(Order order, @Header(KafkaHeaders.RECEIVED_PARTITION) int partition) {
         log.debug("Received order: " + order + " from partition: " + partition);
+        // throw new RuntimeException("My exception");
     }
 
     @KafkaListener(

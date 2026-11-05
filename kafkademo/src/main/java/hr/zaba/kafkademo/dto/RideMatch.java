@@ -8,5 +8,5 @@ import lombok.*;
 @AllArgsConstructor
 public class RideMatch {
     private RideRequest ride;
-    private DriverLocation drive;
+    private DriverLocation driver;
 }

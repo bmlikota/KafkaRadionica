@@ -22,16 +22,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 @RequestMapping("/kafka")
 public class KafkaTestController {
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final KafkaTemplate<Long, Order> ordersKafkaTemplate;
+    private final KafkaTemplate<String, String> stringStringKafkaTemplate;
+    private final KafkaTemplate<Long, Order> longJsonKafkaTemplate;
     private final StreamsBuilderFactoryBean factoryBean;
 
     @GetMapping("/test")
     public String test() {
         var poruka = "Moj prvi Spring Boot event";
-        // kafkaTemplate.send(MY_TOPIC, poruka);
+        // stringStringKafkaTemplate.send("mytopic", poruka);
         // Ako zelimo cekati odgovor asinkrono
-        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send("mytopic", poruka);
+        CompletableFuture<SendResult<String, String>> future = stringStringKafkaTemplate.send("mytopic", poruka);
         future.whenComplete((result, ex) -> {
             if (ex == null) {
                 System.out.println("Sent message=[" + poruka +
@@ -47,8 +47,8 @@ public class KafkaTestController {
 
     @PostMapping("/order")
     public void postMethodName(@RequestBody Order order) {
-        this.ordersKafkaTemplate.send("orders", order);
-        // this.ordersKafkaTemplate.send("orders", order.getCustomerId(), order);
+        this.longJsonKafkaTemplate.send("orders", order);
+        // this.longJsonKafkaTemplate.send("orders", order.getCustomerId(), order);
     }
 
     @GetMapping(value = "/topology", produces = MediaType.TEXT_PLAIN_VALUE)

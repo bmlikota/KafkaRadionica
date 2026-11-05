@@ -9,6 +9,6 @@ import lombok.*;
 public class Transaction {
     private String transactionId;
     private String accountId;
-    private double amount;
+    private Double amount;
     private String status;
 }
