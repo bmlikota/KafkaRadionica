@@ -430,9 +430,7 @@ bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
 
 docker exec --workdir //opt/kafka -it kafka \
 bin/kafka-console-producer.sh --topic transactions-input \
---bootstrap-server localhost:9092 \
---reader-property "parse.key=true" \
---reader-property "key.separator=:"
+--bootstrap-server localhost:9092
 ```
 
 ## Kafka Connect API
@@ -496,3 +494,56 @@ Pokretanje konektora:
 docker exec --workdir //opt/kafka -it kafka sh \
 bin/connect-standalone.sh config/connect-standalone.properties config/connect-file-source.properties config/connect-file-sink.properties
 ```
+
+```sh
+docker exec --workdir //opt/kafka -it kafka sh \
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 \
+--topic connect-test --group test-group \
+--command-property group.protocol=consumer
+```
+
+### Zadatak
+
+Obriši sadržaj test.sink.txt datoteke.
+
+```sh
+# Kreiraj input streams topic
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic my-input-streams-topic
+
+# Kreiraj output streams topic
+docker exec --workdir //opt/kafka -it kafka \
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create \
+--replication-factor 1 \
+--partitions 1 \
+--topic my-output-streams-topic
+```
+
+U connect-file-source.properties staviti:
+
+```txt
+topic=my-input-streams-topic
+```
+
+U connect-file-sink.properties staviti:
+
+```txt
+topics=my-output-streams-topic
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=org.apache.kafka.connect.converters.LongConverter
+```
+
+U config/connect-standalone.properties postaviti:
+
+```txt
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=org.apache.kafka.connect.storage.StringConverter
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
+```
+
+Schemas.enable=true očekuje: { "schema": ..., "payload": ...}
+A schemas.enable=false očekuje čisti json: {"id":3,"ime":"Marko"}

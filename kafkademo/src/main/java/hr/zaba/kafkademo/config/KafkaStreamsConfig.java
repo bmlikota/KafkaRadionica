@@ -129,7 +129,7 @@ public class KafkaStreamsConfig {
     }
 
     @Bean
-    @ConditionalOnExpression("true")
+    @ConditionalOnExpression("false")
     public KStream<String, Order> joinStream(StreamsBuilder kStreamBuilder) {
 
         KStream<String, Order> leftStream = kStreamBuilder
@@ -205,7 +205,7 @@ public class KafkaStreamsConfig {
 
 
     @Bean
-    @ConditionalOnExpression("false")
+    @ConditionalOnExpression("true")
     public KStream<String, Transaction> transactionsStream(
             StreamsBuilder kStreamBuilder) {
 

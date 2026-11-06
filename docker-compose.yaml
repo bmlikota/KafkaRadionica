@@ -5,8 +5,9 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
-    volumes:
-      - ~/dev/Edukacije/Kafka:/home/appuser/shared:rw
+    #volumes:
+      #- ~/dev/Edukacije/Kafka/KafkaRadionica:/home/appuser/shared:rw
+      #- ~/dev/Edukacije/Kafka/KafkaRadionica/config:/opt/kafka/config:rw
       #- D:\Edukacije\KafkaRadionica:/home/appuser/shared:rw #Windows
       #- ~/dev/Edukacije/KafkaRadionica/config:/opt/kafka/config:rw
     environment:
